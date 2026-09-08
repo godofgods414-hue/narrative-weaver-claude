@@ -50,3 +50,12 @@
       which is why no prompts were written. Writing now runs on a list of currently free models
       (Nemotron 3 Super 120B first, then Nemotron Ultra and Gemma 4) with automatic switch on
       model-unavailable/overloaded, plus thinking-budget headroom so answers are never cut off.
+
+## Cloned into this project (2026-09-08, narrative-art-weaver)
+- [x] Repo cloned and running here; 4 Pixazo image keys stored as secrets (never in code)
+- [x] OpenRouter removed completely (openrouter.server.ts deleted, all its models gone)
+- [x] Writing now runs only on Claude Opus 5 via tabitoken.com, thinking disabled,
+      key read from the OPENAI_API_KEY secret on the server only
+- [ ] Blocked: tabitoken shows "0 models enabled" for this account, so the model
+      id cannot be confirmed. Default is `claude-opus-5`; override with the
+      TABITOKEN_MODEL secret once the account lists the model.
