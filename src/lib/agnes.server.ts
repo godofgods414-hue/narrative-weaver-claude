@@ -1,33 +1,32 @@
 /**
- * The only text engine in this app: Claude Opus 5, served through the
- * tabitoken.com OpenAI-compatible endpoint.
+ * The only text engine in this app: Agnes AI (OpenAI-compatible gateway).
  *
  * Rules baked in here:
- *  - ONE model only (`TABITOKEN_MODEL`, default `claude-opus-5`).
- *  - Thinking / extended reasoning is explicitly DISABLED on every request.
+ *  - ONE model only (`AGNES_MODEL`, default `agnes-2.5-flash` — the newest,
+ *    strongest free Agnes text model as of September 2026).
  *  - Requests are queued: one call in flight at a time, with a small gap so
  *    the account's rate limit is never raced.
  *  - The key lives only in the server environment; it is never sent to the
  *    browser and never written into the codebase.
  */
 
-const API = "https://tabitoken.com/v1/chat/completions";
+const API = "https://apihub.agnes-ai.com/v1/chat/completions";
 
-/** Fixed model. Override with the TABITOKEN_MODEL secret if the id differs. */
+/** Fixed model. Override with the AGNES_MODEL secret if the id changes. */
 export function model(): string {
-  return process.env["TABITOKEN_MODEL"]?.trim() || "claude-opus-5";
+  return process.env["AGNES_MODEL"]?.trim() || "agnes-2.5-flash";
 }
 
 function apiKey(): string {
-  const key = process.env["OPENAI_API_KEY"]?.trim();
-  if (!key) throw new Error("Missing OPENAI_API_KEY (tabitoken.com key)");
+  const key = process.env["AGNES_API_KEY"]?.trim();
+  if (!key) throw new Error("Missing AGNES_API_KEY (Agnes AI key)");
   return key;
 }
 
 /** Largest answer to ask for. */
-const MAX_OUT = 32_000;
-/** Minimum gap between two requests. */
-const MIN_GAP_MS = 1_200;
+const MAX_OUT = 60_000;
+/** Minimum gap between two requests (free tier ~20 RPM). */
+const MIN_GAP_MS = 3_200;
 
 let lastUsed = 0;
 /** Global serialization: one request in flight at a time. */
@@ -43,7 +42,7 @@ function busy(status: number, body: string): boolean {
     status === 502 ||
     status === 503 ||
     status === 504 ||
-    /overloaded|temporarily|Upstream error|Provider returned error|no available channel/i.test(body)
+    /overloaded|temporarily|rate limit|Upstream error|Provider returned error|no available channel/i.test(body)
   );
 }
 
@@ -57,16 +56,16 @@ export type ChatOptions = {
 };
 
 /** One text completion, queued behind every other text call. */
-export function claudeChat(user: string, opts: ChatOptions = {}): Promise<string> {
+export function agnesChat(user: string, opts: ChatOptions = {}): Promise<string> {
   const run = chain.then(
-    () => callClaude(user, opts),
-    () => callClaude(user, opts),
+    () => callAgnes(user, opts),
+    () => callAgnes(user, opts),
   );
   chain = run.catch(() => undefined);
   return run;
 }
 
-async function callClaude(user: string, opts: ChatOptions): Promise<string> {
+async function callAgnes(user: string, opts: ChatOptions): Promise<string> {
   const attempts = opts.attempts ?? 6;
   let lastErr = "";
 
@@ -83,9 +82,6 @@ async function callClaude(user: string, opts: ChatOptions): Promise<string> {
           "Content-Type": "application/json",
           Accept: "text/event-stream",
           Authorization: `Bearer ${apiKey()}`,
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-          "HTTP-Referer": "https://lovable.dev",
-          "X-Title": "Script to Manga",
         },
         body: JSON.stringify({
           model: model(),
@@ -95,10 +91,6 @@ async function callClaude(user: string, opts: ChatOptions): Promise<string> {
           ],
           temperature: opts.temperature ?? 0.7,
           max_tokens: Math.min(MAX_OUT, opts.maxOutputTokens ?? 16_000),
-          // Thinking stays OFF — both spellings, so whichever the relay
-          // forwards to Anthropic keeps extended reasoning disabled.
-          thinking: { type: "disabled" },
-          reasoning_effort: "none",
           // STREAMING IS REQUIRED for long answers: a buffered request that
           // sends no bytes for ~2 minutes is severed by the hosting platform.
           stream: true,
@@ -120,7 +112,7 @@ async function callClaude(user: string, opts: ChatOptions): Promise<string> {
 
       if (busy(res.status, body)) {
         const retryAfter = Number(res.headers.get("retry-after") ?? 0);
-        await sleep(retryAfter > 0 ? retryAfter * 1000 + 500 : 2_000 * (attempt + 1));
+        await sleep(retryAfter > 0 ? retryAfter * 1000 + 500 : 3_000 * (attempt + 1));
         continue;
       }
       if (res.status === 400 || res.status === 401 || res.status === 403) break;
@@ -131,7 +123,7 @@ async function callClaude(user: string, opts: ChatOptions): Promise<string> {
     }
   }
 
-  throw new Error(`Claude request failed: ${lastErr}`);
+  throw new Error(`Agnes request failed: ${lastErr}`);
 }
 
 export function engineStatus(): { model: string; keyIndex: number; keys: number } {

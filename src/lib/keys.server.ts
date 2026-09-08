@@ -2,8 +2,8 @@
  * API key pools.
  *
  * Image keys (Pixazo) are used in parallel — several renders at once.
- * The text key (tabitoken.com / Claude Opus 5) is read directly from the
- * environment in claude.server.ts.
+ * The text key (Agnes AI) is read directly from the
+ * environment in agnes.server.ts.
  */
 
 function readPool(prefix: string): string[] {
