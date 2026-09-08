@@ -924,21 +924,25 @@ export function hasPeople(prompt: string, bible?: string): boolean {
 /**
  * Hard budget for what actually reaches the image model.
  *
- * Flux.1 Schnell reads roughly 256 tokens (~1000 characters). Everything past
- * that is silently thrown away by the encoder — the renderer never sees it.
- * The old composition opened with the long style block, then the scene, then
- * the appearance lock and five guard sentences, which ran past 2000
- * characters. On long scripts (longer prompts, a longer character bible) the
- * scene itself was pushed over the edge and got cut, so the picture was drawn
- * from a style block and some guards with barely any story in it — a panel
- * that looks nothing like its line. Short scripts stayed under the limit,
- * which is why the fault only showed up on long ones.
+ * Flux reads the prompt through TWO encoders: T5 (~256 tokens, ~1000 chars)
+ * and CLIP, which sees ONLY the first ~77 tokens (~300 chars). Whatever sits
+ * in those first 300 characters is what the picture is "about".
  *
- * So: the STORY MOMENT goes first and always fits, then a compact style and
- * the shortest possible guards, and the whole thing is kept inside the budget.
+ * The old composition opened with a 200-character style block whose nouns
+ * were "large expressive anime eyes and stylised anime faces" — so for CLIP
+ * almost every panel was a request for an anime face, and the story moment
+ * only started at character ~230. Depending on the seed, the renderer then
+ * drew a generic anime close-up (a random girl's face, a grinning boy) with
+ * nothing of the line in it. A retry on a new seed sometimes landed on the
+ * scene instead, which made the fault look random. Same prompt, same code
+ * path — the composition itself was the cause.
+ *
+ * So: the STORY MOMENT comes first, after only a five-word medium tag, and
+ * the style words never name eyes or faces. Style is restated compactly at
+ * the end, inside the T5 window.
  */
-const IMAGE_PROMPT_BUDGET = 1250;
-const SCENE_BUDGET = 470;
+const IMAGE_PROMPT_BUDGET = 1100;
+const SCENE_BUDGET = 620;
 const LOCK_BUDGET = 150;
 
 /** Trims to a length without cutting mid-word. */
@@ -951,21 +955,15 @@ function clip(s: string, max: number): string {
 }
 
 /**
- * Compact renderer-side art direction.
- *
- * Flux weights its opening tokens most heavily, and its untouched default look
- * is photographic — which is exactly why some panels came back looking like
- * photos even though the style clause was present later in the prompt. So the
- * anime declaration now OPENS the prompt (concrete, drawing-specific nouns the
- * model can only satisfy with 2D artwork) and is restated compactly at the end.
+ * Minimal medium tag. Just enough to keep Flux off its photographic default
+ * without spending CLIP's short window on style nouns — and, critically,
+ * without ever naming faces or eyes as things to draw.
  */
-const STYLE_LEAD =
-  "2D hand-drawn Japanese anime animation frame, cel-shaded anime artwork, crisp uniform ink outlines, " +
-  "flat anime colour fills, large expressive anime eyes and stylised anime faces, hand-painted anime background";
+const STYLE_LEAD = "2D anime cel-shaded illustration of";
 
 const STYLE_TAIL =
-  "anime cel animation still, drawn ink lines and flat cel colour throughout, " +
-  "fully finished production artwork drawn and coloured edge to edge, no unfinished patches";
+  "polished 2D Japanese anime animation frame, crisp uniform ink outlines, flat cel colour fills, " +
+  "hand-painted anime background, fully finished artwork drawn edge to edge";
 
 export function composeImagePrompt(prompt: string, bible?: string): string {
   const fixed = enforceGender(sanitizePrompt(prompt), bible);
@@ -973,18 +971,17 @@ export function composeImagePrompt(prompt: string, bible?: string): string {
   // Character lock only matters when someone is actually in frame.
   const lock = peopled ? clip(characterLock(fixed, bible), LOCK_BUDGET) : "";
 
-  // Style FIRST (Flux's default look is photographic), then the scene, which
-  // is still protected by its own budget so it can never be lost.
+  // Scene FIRST: the subject, place and action of this exact line are what
+  // both encoders must see before anything else.
   const parts = [
-    STYLE_LEAD,
-    `THIS EXACT STORY MOMENT: ${clip(fixed, SCENE_BUDGET)}`,
+    `${STYLE_LEAD} this exact moment: ${clip(fixed, SCENE_BUDGET)}`,
     lock,
     peopled
       ? "only the described people, each drawn once, whole separate bodies"
       : "empty environment, no people in frame",
     "natural clear lighting, wordless artwork with no text or signage",
     STYLE_TAIL,
-    "one single 16:9 widescreen anime illustration of this one moment",
+    "one single 16:9 widescreen frame showing the whole scene",
   ].filter(Boolean);
 
   return clip(
