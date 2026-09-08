@@ -2,9 +2,8 @@
  * API key pools.
  *
  * Image keys (Pixazo) are used in parallel — several renders at once.
- * Text keys (OpenRouter) are NEVER used in parallel: one key is active at a time
- * and the pool only advances when that key's daily quota is exhausted
- * (see openrouter.server.ts).
+ * The text key (tabitoken.com / Claude Opus 5) is read directly from the
+ * environment in claude.server.ts.
  */
 
 function readPool(prefix: string): string[] {
@@ -24,11 +23,6 @@ export function pixazoKeys(): string[] {
   return keys;
 }
 
-export function openrouterKeys(): string[] {
-  const keys = readPool("OPENROUTER_API_KEY");
-  if (keys.length === 0) throw new Error("Missing OPENROUTER_API_KEY");
-  return keys;
-}
 
 /**
  * Deterministic spread for the IMAGE pool: a caller passes the scene index as

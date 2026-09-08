@@ -55,8 +55,8 @@ export const ANATOMY_GUARD =
   "anatomically correct bodies, one head, two arms and two legs per person, every figure a complete separate body with its own clothing, clearly spaced apart, never fused, merged, overlapping into one another or duplicated";
 
 /**
- * Every text call in the app goes through MiniMax M3 (free) on OpenRouter
- * (see openrouter.server.ts): one key at a time, with an automatic switch to
+ * Every text call in the app goes through Claude Opus 5 on tabitoken.com
+ * (see claude.server.ts): one request at a time, with an automatic retry on
  * the next key when a daily free-model quota runs out. No other provider is
  * used anywhere in this app.
  */

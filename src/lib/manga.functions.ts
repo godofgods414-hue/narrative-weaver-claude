@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { parseScript } from "./script";
 import { buildCharacterBible, writePrompts, renderPanel } from "./manga.server";
-import { engineStatus } from "./openrouter.server";
+import { engineStatus } from "./claude.server";
 
 const SegmentSchema = z.object({
   index: z.number(),
