@@ -1,10 +1,8 @@
 /**
- * The ONLY text engine in this app: Claude Opus 5 via tabitoken.com.
- *
- * There is deliberately no other provider, and thinking is disabled.
+ * The ONLY text engine in this app: Agnes AI (agnes-2.5-flash).
  */
 
-import { claudeChat } from "./claude.server";
+import { agnesChat } from "./agnes.server";
 
 export async function textChat(
   system: string,
@@ -16,5 +14,5 @@ export async function textChat(
     attempts?: number;
   } = {},
 ): Promise<string> {
-  return claudeChat(user, { system, ...opts });
+  return agnesChat(user, { system, ...opts });
 }

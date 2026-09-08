@@ -52,12 +52,12 @@ const SAMPLE = `(0:00)Henan की कहानी असुरा का उद
  * Script lines written per prompt pass.
  *
  * The model reads the ENTIRE script on every pass and writes this many prompts
- * at a time. Claude Opus 5 answers with roughly 5x the output length of the old
+ * at a time. Agnes 2.5 Flash answers with a long output budget compared with the old
  * engine, so each pass covers 5x as many lines — far fewer requests per script,
  * which is what protects the daily free-model allowance.
  */
 // The model reads the WHOLE script (1M+ input) on every pass and writes this
-// many prompts per request. Claude Opus 5 answers up to ~264k tokens, so a large
+// many prompts per request. Agnes 2.5 Flash answers up to ~65k tokens, so a large
 // batch still lands in one streamed answer — bigger batches mean far fewer
 // seams, so prompts stay faithful to the script's own lines and timestamps.
 const PROMPT_RANGE = 120;

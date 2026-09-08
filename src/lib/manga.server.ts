@@ -55,8 +55,8 @@ export const ANATOMY_GUARD =
   "anatomically correct bodies, one head, two arms and two legs per person, every figure a complete separate body with its own clothing, clearly spaced apart, never fused, merged, overlapping into one another or duplicated";
 
 /**
- * Every text call in the app goes through Claude Opus 5 on tabitoken.com
- * (see claude.server.ts): one request at a time, with an automatic retry on
+ * Every text call in the app goes through Agnes AI (agnes-2.5-flash)
+ * (see agnes.server.ts): one request at a time, with an automatic retry on
  * the next key when a daily free-model quota runs out. No other provider is
  * used anywhere in this app.
  */
@@ -179,7 +179,7 @@ export async function buildCharacterBible(script: string): Promise<string> {
     "thin wiry build, faded grey school shirt with frayed collar, small scar above left eyebrow. " +
     "No headings, no numbering, no extra commentary.";
 
-  // Claude Opus 5 reads a million tokens, so the ENTIRE script goes in — no sampling,
+  // Agnes 2.5 Flash reads a 512k-token context, so the ENTIRE script goes in — no sampling,
   // no chunking. Characters introduced late are now covered like the rest.
   const body = script.length > MAX_SCRIPT_CHARS ? script.slice(0, MAX_SCRIPT_CHARS) : script;
 
