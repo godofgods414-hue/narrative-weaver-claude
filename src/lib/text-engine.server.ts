@@ -1,11 +1,10 @@
 /**
- * The ONLY text engine in this app: MiniMax M3 (free) on OpenRouter.
+ * The ONLY text engine in this app: Claude Opus 5 via tabitoken.com.
  *
- * There is deliberately no other provider. The key pool rotates automatically
- * when a key's daily free allowance runs out (see openrouter.server.ts).
+ * There is deliberately no other provider, and thinking is disabled.
  */
 
-import { openrouterChat } from "./openrouter.server";
+import { claudeChat } from "./claude.server";
 
 export async function textChat(
   system: string,
@@ -17,5 +16,5 @@ export async function textChat(
     attempts?: number;
   } = {},
 ): Promise<string> {
-  return openrouterChat(user, { system, ...opts });
+  return claudeChat(user, { system, ...opts });
 }
